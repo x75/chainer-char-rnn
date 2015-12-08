@@ -21,6 +21,7 @@ parser.add_argument('--sample',     type=int,   default=1)
 parser.add_argument('--primetext',  type=str,   default='')
 parser.add_argument('--length',     type=int,   default=2000)
 parser.add_argument('--gpu',        type=int,   default=-1)
+parser.add_argument('--temperature',type=float,   default=1.0)
 
 args = parser.parse_args()
 
@@ -33,13 +34,26 @@ for c, i in vocab.items():
     ivocab[i] = c
 
 # load model
+print args.model
 model = pickle.load(open(args.model, 'rb'))
-n_units = model.embed.W.shape[1]
+# print model.embed.W.data.shape[1]
+n_units = model.embed.W.data.shape[1]
 
 if args.gpu >= 0:
     cuda.get_device(args.gpu).use()
     model.to_gpu()
 
+# custom primetext
+datadir = "data/drinksonus8b"
+print ('%s/input.txt'% datadir) #args.data_dir)
+infile = open('%s/input.txt' % datadir, 'rb')
+seedindex = np.random.randint(1000000)
+infile.seek(seedindex)
+words = infile.read(44100)
+words = list(words)
+infile.close()
+
+    
 # initialize generator
 state = make_initial_state(n_units, batchsize=1, train=False)
 if args.gpu >= 0:
@@ -63,6 +77,13 @@ for i in xrange(args.length):
 
     if args.sample > 0:
         probability = cuda.to_cpu(prob.data)[0].astype(np.float64)
+        if args.temperature != 1.0:
+            # invert exp
+            probability = np.log(probability)
+            # scale by temperature
+            probability /= args.temperature
+            # re=exponentiate
+            probability = np.exp(probability).squeeze()
         probability /= np.sum(probability)
         index = np.random.choice(range(len(probability)), p=probability)
     else:

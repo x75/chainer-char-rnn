@@ -12,12 +12,18 @@ from chainer import cuda, Variable, FunctionSet, optimizers
 import chainer.functions as F
 from CharRNN import CharRNN, make_initial_state
 
+from scipy.io import wavfile
+
 # input data
 def load_data(args):
     vocab = {}
     print ('%s/input.txt'% args.data_dir)
     words = open('%s/input.txt' % args.data_dir, 'rb').read()
     words = list(words)
+    
+    # rate, words = wavfile.read("%s/drinksonus44-1.wav" % args.data_dir)
+    # words = list(words)
+    
     dataset = np.ndarray((len(words),), dtype=np.int32)
     for i, word in enumerate(words):
         if word not in vocab:
